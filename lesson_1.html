@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>İnteraktiv Linux Əmrləri Axtarış Sistemi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Slate gray with a touch of Indigo for accents. -->
+    <!-- Application Structure Plan: The application is designed as a single-page interactive cheat sheet. Instead of static text, it features a live search bar and category filter buttons (Fayl, Proses, Şəbəkə, etc.). This structure was chosen because the primary user goal is to quickly find a specific command. A searchable, filterable interface is far more efficient and user-friendly for a reference guide than a long, scrollable document. The layout uses a card-based system to present each command cleanly. -->
+    <!-- Visualization & Content Choices: The source report contains categorical text data, not quantitative data, so traditional charts (like bar or line charts) are not applicable. The core information (command + description) is presented in a dynamic, filterable list of cards. Each card clearly separates the command from its explanation. The main interaction is text-based search and category filtering, which directly serves the goal of a reference tool. No charting libraries like Chart.js or Plotly are needed or used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .command-card {
+            transition: all 0.2s ease-in-out;
+        }
+        .command-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .command-code {
+            font-family: 'Courier New', Courier, monospace;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <div class="container mx-auto px-4 py-8 md:py-12">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl md:text-5xl font-bold text-slate-900">İnteraktiv Linux Əmrləri</h1>
+            <p class="mt-3 text-lg text-slate-600">Əmrləri asanlıqla axtarın və kateqoriyalara görə filtrləyin.</p>
+        </header>
+
+        <main>
+            <!-- Search and Filter Section -->
+            <div class="sticky top-0 z-10 bg-slate-50/80 backdrop-blur-sm py-4 mb-8">
+                <div class="max-w-3xl mx-auto">
+                    <input type="text" id="searchInput" placeholder="Əmr və ya izahını axtarın... (məsələn, 'copy' və ya 'silir')" class="w-full px-5 py-3 text-base border-2 border-slate-300 rounded-full shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+                </div>
+                <div id="filterContainer" class="flex flex-wrap justify-center gap-2 md:gap-3 mt-6">
+                    <!-- Filter buttons will be injected here by JS -->
+                </div>
+            </div>
+
+            <!-- Intro text -->
+            <div id="introText" class="text-center max-w-3xl mx-auto my-12 p-6 bg-white rounded-lg shadow-sm">
+                <h2 class="text-2xl font-bold text-indigo-700 mb-3">Sistemə Xoş Gəlmisiniz!</h2>
+                <p class="text-slate-600">Bu səhifə, Linux əmrlərini öyrənmək və tez bir zamanda tapmaq üçün hazırlanmış interaktiv bir bələdçidir. Yuxarıdakı axtarış xanasından istifadə edərək dərhal axtarışa başlaya və ya kateqoriya düymələrinə klikləyərək əmrləri qruplaşdırılmış şəkildə görə bilərsiniz. Hər bir bölmə, müəyyən bir funksiyanı yerinə yetirən əmrləri bir araya gətirir. Məsələn, "📁 Fayl Əmrləri" bölməsi fayl və qovluqlarla işləmək üçün olan əmrləri ehtiva edir.</p>
+            </div>
+
+            <!-- Command List -->
+            <div id="commandList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Commands will be injected here by JS -->
+            </div>
+            
+            <div id="noResults" class="text-center py-16 hidden">
+                <p class="text-2xl font-semibold text-slate-500">Heç bir nəticə tapılmadı.</p>
+                <p class="text-slate-400 mt-2">Axtarış kriteriyasını dəyişməyə cəhd edin.</p>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const commands = [
+            // Fayl Əmrləri
+            { command: 'ls', description: 'Qovluqdakı faylların siyahısını göstərir', category: 'Fayl' },
+            { command: 'ls -al', description: 'Gizli fayllarla birlikdə ətraflı siyahı', category: 'Fayl' },
+            { command: 'cd qovluq', description: 'Verilmiş qovluğa keçid', category: 'Fayl' },
+            { command: 'cd', description: 'Ev qovluğuna (home) keçid', category: 'Fayl' },
+            { command: 'pwd', description: 'Hal-hazırda olduğun qovluğun yolunu göstərir', category: 'Fayl' },
+            { command: 'mkdir qovluq', description: 'Yeni qovluq yaradır', category: 'Fayl' },
+            { command: 'rm fayl', description: 'Faylı silir', category: 'Fayl' },
+            { command: 'rm -r qovluq', description: 'Qovluğu və içindəkiləri silir', category: 'Fayl' },
+            { command: 'rm -f fayl', description: 'Təsdiq soruşmadan faylı silir', category: 'Fayl' },
+            { command: 'rm -rf qovluq', description: 'Qovluğu məcburi və rekursiv silir (⚠️ ehtiyatla istifadə et!)', category: 'Fayl' },
+            { command: 'cp fayl1 fayl2', description: 'Fayl1-i Fayl2 adı ilə kopyalayır', category: 'Fayl' },
+            { command: 'cp -r qov1 qov2', description: 'Qovluğu və içindəkiləri kopyalayır', category: 'Fayl' },
+            { command: 'mv fayl1 fayl2', description: 'Faylı köçürür və ya adını dəyişir', category: 'Fayl' },
+            { command: 'ln -s fayl link', description: 'Fayla simvolik keçid (shortcut) yaradır', category: 'Fayl' },
+            { command: 'touch fayl', description: 'Boş fayl yaradır və ya tarixini yeniləyir', category: 'Fayl' },
+            { command: 'cat > fayl', description: 'Faylın içini terminaldan yazır', category: 'Fayl' },
+            { command: 'more fayl', description: 'Faylın məzmununu səhifələmə ilə göstərir', category: 'Fayl' },
+            { command: 'head fayl', description: 'Faylın ilk 10 sətrini göstərir', category: 'Fayl' },
+            { command: 'tail fayl', description: 'Faylın son 10 sətrini göstərir', category: 'Fayl' },
+            { command: 'tail -f fayl', description: 'Faylın artımını real vaxtda izləmək üçün (log fayllarında faydalı)', category: 'Fayl' },
+
+            // Proses İdarəsi
+            { command: 'ps', description: 'Hazırda işləyən prosesləri göstərir', category: 'Proses' },
+            { command: 'top', description: 'Bütün işləyən prosesləri canlı göstərir', category: 'Proses' },
+            { command: 'kill PID', description: 'Proses ID-sini (PID) öldürür', category: 'Proses' },
+            { command: 'killall ad', description: 'Adı verilmiş bütün prosesləri öldürür', category: 'Proses' },
+            { command: 'bg', description: 'Dayandırılmış prosesi fon rejimində davam etdirir', category: 'Proses' },
+            { command: 'fg', description: 'Son dayandırılmış prosesi önə gətirir', category: 'Proses' },
+            { command: 'fg 1', description: '1 nömrəli işi ön plana gətirir', category: 'Proses' },
+
+            // İcazələr
+            { command: 'chmod 777 fayl', description: 'Faylı oxumaq, yazmaq, icra etmək — hər kəs üçün', category: 'İcazələr' },
+            { command: 'chmod 755 fayl', description: 'Sahib üçün rwx, qalanlar üçün rx', category: 'İcazələr' },
+            { command: 'chown user fayl', description: 'Faylın sahibini dəyişir', category: 'İcazələr' },
+
+            // Şəbəkə
+            { command: 'ping sayt.com', description: 'Sayta bağlantını yoxlayır', category: 'Şəbəkə' },
+            { command: 'whois domain', description: 'Domen haqqında qeydiyyat məlumatları', category: 'Şəbəkə' },
+            { command: 'dig domain', description: 'DNS qeydlərini göstərir', category: 'Şəbəkə' },
+            { command: 'dig -x IP', description: 'IP üçün "reverse lookup" edir', category: 'Şəbəkə' },
+            { command: 'wget link', description: 'Faylı internetdən yükləyir', category: 'Şəbəkə' },
+            { command: 'wget -c link', description: 'Kəsilmiş yükləməni davam etdirir', category: 'Şəbəkə' },
+
+            // Sistem Məlumatı
+            { command: 'date', description: 'Tarix və saatı göstərir', category: 'Sistem' },
+            { command: 'cal', description: 'Ayın təqvimini göstərir', category: 'Sistem' },
+            { command: 'uptime', description: 'Serverin nə qədər işlədiyini göstərir', category: 'Sistem' },
+            { command: 'whoami', description: 'Hazırda daxil olduğun istifadəçi adı', category: 'Sistem' },
+            { command: 'uname -a', description: 'Əməliyyat sistemi və kernel haqqında məlumat', category: 'Sistem' },
+            { command: 'df -h', description: 'Diskdə boş yerin həcmini göstərir', category: 'Sistem' },
+            { command: 'free -h', description: 'RAM və swap yaddaşının istifadəsini göstərir', category: 'Sistem' },
+            { command: 'man əmr', description: 'Əmr haqqında kömək (manual) səhifəsini göstərir', category: 'Sistem' },
+
+            // Arxivləşdirmə
+            { command: 'tar cf fayl.tar qovluq', description: 'Qovluğu .tar arxivinə çevirir', category: 'Arxiv' },
+            { command: 'tar xf fayl.tar', description: '.tar arxivini açır', category: 'Arxiv' },
+            { command: 'tar czf fayl.tar.gz qovluq', description: 'Gzip ilə sıxılmış .tar.gz yaradır', category: 'Arxiv' },
+            { command: 'tar xzf fayl.tar.gz', description: '.tar.gz arxivini açır', category: 'Arxiv' },
+            { command: 'gzip fayl', description: 'Faylı sıxışdırır (.gz uzantısı əlavə edir)', category: 'Arxiv' },
+            { command: 'gzip -d fayl.gz', description: '.gz faylını açır (sıxışdırmadan çıxarır)', category: 'Arxiv' },
+
+            // Digər
+            { command: 'Ctrl+C', description: 'Hazırda işləyən əmri dayandırır (ləğv edir)', category: 'Digər' },
+            { command: 'Ctrl+Z', description: 'Əmri dayandırır (fon rejimində), `fg` ilə davam etmək olar', category: 'Digər' },
+            { command: 'Ctrl+D', description: 'Sessiyadan çıxmaq üçün (boş sətirdə olduqda)', category: 'Digər' },
+            { command: '!!', description: 'Son icra olunmuş əmri təkrar edir', category: 'Digər' },
+            { command: 'exit', description: 'Terminaldan və ya shell sessiyasından çıxmaq', category: 'Digər' }
+        ];
+
+        const commandList = document.getElementById('commandList');
+        const searchInput = document.getElementById('searchInput');
+        const filterContainer = document.getElementById('filterContainer');
+        const noResults = document.getElementById('noResults');
+        const introText = document.getElementById('introText');
+
+        let activeCategory = 'All';
+
+        const categories = {
+            'All': 'Bütün Əmrlər',
+            'Fayl': '📁 Fayl',
+            'Proses': '🔧 Proses',
+            'İcazələr': '🔐 İcazələr',
+            'Şəbəkə': '🌐 Şəbəkə',
+            'Sistem': '💡 Sistem',
+            'Arxiv': '📦 Arxiv',
+            'Digər': '🧩 Digər'
+        };
+
+        function renderCommands() {
+            const searchTerm = searchInput.value.toLowerCase();
+            commandList.innerHTML = '';
+
+            const filteredCommands = commands.filter(cmd => {
+                const matchesCategory = activeCategory === 'All' || cmd.category === activeCategory;
+                const matchesSearch = cmd.command.toLowerCase().includes(searchTerm) || cmd.description.toLowerCase().includes(searchTerm);
+                return matchesCategory && matchesSearch;
+            });
+
+            if (filteredCommands.length === 0) {
+                noResults.classList.remove('hidden');
+                introText.classList.add('hidden');
+            } else {
+                noResults.classList.add('hidden');
+                introText.classList.add('hidden');
+            }
+
+            filteredCommands.forEach(cmd => {
+                const card = document.createElement('div');
+                card.className = 'command-card bg-white p-5 rounded-lg shadow-sm border border-slate-200';
+                card.innerHTML = `
+                    <h3 class="text-lg font-semibold text-slate-800 mb-2 command-code">${cmd.command}</h3>
+                    <p class="text-slate-600">${cmd.description}</p>
+                `;
+                commandList.appendChild(card);
+            });
+        }
+        
+        function createFilterButtons() {
+            Object.entries(categories).forEach(([key, value]) => {
+                const button = document.createElement('button');
+                button.textContent = value;
+                button.dataset.category = key;
+                button.className = 'filter-btn px-4 py-2 text-sm font-medium rounded-full transition-colors';
+                if (key === 'All') {
+                    button.classList.add('bg-indigo-600', 'text-white');
+                } else {
+                    button.classList.add('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300');
+                }
+                filterContainer.appendChild(button);
+            });
+        }
+        
+        filterContainer.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                activeCategory = e.target.dataset.category;
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.classList.remove('bg-indigo-600', 'text-white');
+                    btn.classList.add('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300');
+                });
+                e.target.classList.add('bg-indigo-600', 'text-white');
+                e.target.classList.remove('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300');
+                renderCommands();
+            }
+        });
+
+        searchInput.addEventListener('keyup', renderCommands);
+
+        // Initial setup
+        createFilterButtons();
+        // Don't render all commands initially to show the intro text first.
+        // renderCommands(); 
+    </script>
+
+</body>
+</html>
